@@ -42,12 +42,16 @@ app.add_middleware(
         "Accept"
     ],
     allow_origins=[
-        "localhost",
-        "http://localhost",
-        "https://localhost",
-        "localhost:8081",
-        "http://localhost:8081",
-        "https://localhost:8081",
+        "*",
+        # "localhost",
+        # "http://localhost",
+        # "https://localhost",
+        # "localhost:8081",
+        # "http://localhost:8081",
+        # "https://localhost:8081",
+        # "localhost:5173",
+        # "http://localhost:5173",
+        # "https://localhost:5173",
     ],
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"],
@@ -93,7 +97,6 @@ if __name__ == "__main__":
     import uvicorn
     uvicorn.run(
         "acc_server_mgr.main:app",
-        ssl_keyfile="../localhost+2-key.pem",
-        ssl_certfile="../localhost+2.pem",
-        log_config=logging_config
+        log_config=logging_config,
+        root_path="/api"
     )

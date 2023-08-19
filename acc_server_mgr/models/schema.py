@@ -1,11 +1,21 @@
 from datetime import datetime
 from enum import Enum
-from typing import Optional
+from typing import Optional, Annotated
 
 from pydantic import BaseModel, Field, validator
 from pydantic.types import Any, conint, confloat
 
 from acc_server_mgr.models.utils import AllOptional
+
+json_encoders = {
+    datetime: lambda v: v.isoformat(timespec="seconds")
+}
+
+class BaseModel(BaseModel):
+    class Config:
+        orm_mode = True
+        allow_population_by_field_name = True
+        json_encoders = json_encoders
 
 
 class UserCredentials(BaseModel):
@@ -15,22 +25,18 @@ class UserCredentials(BaseModel):
 
 class UserCreate(BaseModel):
     mail: str
-    password: str
-    password_confirm: str
-    scopes: str
+    password: str = Field(..., view="password")
+    password_confirm: str = Field(..., view="password")
+    scopes: str = Field(..., pattern="^[a-zA-Z0-9_-][,a-zA-Z0-9_-]*$", view="csv")
     is_enabled: bool
 
 
 class UserUpdate(BaseModel):
     mail: str = None
-    password: str = None
-    password_confirm: str = None
+    password: str = Field(None, view="password")
+    password_confirm: str = Field(None, view="password")
     is_enabled: bool = None
-    scopes: str = None
-
-    class Config:
-        orm_mode = True
-        allow_population_by_field_name = True
+    scopes: str = Field(..., pattern="^[a-zA-Z0-9_-][,a-zA-Z0-9_-]*$", view="csv")
 
 
 class UserResponse(BaseModel):
@@ -40,10 +46,6 @@ class UserResponse(BaseModel):
     created: datetime
     last_login: Optional[datetime]
     scopes: str
-
-    class Config:
-        orm_mode = True
-        allow_population_by_field_name = True
 
 
 class FilterOperator(str, Enum):
@@ -84,6 +86,10 @@ class UserTokenRequest(BaseModel):
 
 
 class Configuration(BaseModel):
+    """
+    Defines network properties. Used to create `configuration.json` for server
+    instances.
+    """
     name: str
     tcp_port: int = Field(..., alias="tcpPort",
         description="ACC clients will use this port to establish a connection "
@@ -131,37 +137,38 @@ class ConfigurationResponse(Configuration):
     id: int
     created: datetime
 
-    class Config:
-        orm_mode = True
-        allow_population_by_field_name = True
-
 
 class ConfigurationSearchResponse(BaseModel):
     total_count: int
     items: list[ConfigurationResponse]
 
-    class Config:
-        orm_mode = True
-        allow_population_by_field_name = True
-
 
 class Settings(BaseModel):
+    """
+    Define server player and connection behaviour. Used to create
+    `settings.json` for server instances.
+    """
     created: datetime
     server_name: str = Field(..., alias="serverName",
         description="The server name displayed in the ACC UI pages")
     admin_password: str = Field(..., alias="adminPassword",
-        description="The password you specify allows a driver or spectator to log in as Server Admin in the chat window ( ENTER key ) of the server.")
+        description="The password you specify allows a driver or spectator to"
+        " log in as Server Admin in the chat window ( ENTER key ) of the server.")
     car_group: str = Field(..., alias="carGroup",
         enum=["FreeForAll", "GT3", "GT4", "GTC"],
-        description="Defines the car group for this server. Possible values are FreeForAll, GT3, GT4, GTC.")
+        description="Defines the car group for this server. Possible values"
+        " are FreeForAll, GT3, GT4, GTC.")
     track_medals_requirement: int = Field(..., alias="trackMedalsRequirement",
         enum=[0, 1, 2, 3],
-        description="Defines the amount of track medals that a user has to have for the given track. Values: 0, 1, 2, 3.")
+        description="Defines the amount of track medals that a user has to"
+        " have for the given track. Values: 0, 1, 2, 3.")
     safety_rating_requirement: int = Field(..., alias="safetyRatingRequirement",
-        description="Defines the Safety Rating (SA) that a user must have to join this server. Values: -1, 0, 1, 2, 3, 4, .... 97, 98, 99.")
+        description="Defines the Safety Rating (SA) that a user must have to"
+        " join this server. Values: -1, 0, 1, 2, 3, 4, .... 97, 98, 99.")
     racecraft_rating_requirement: int = Field(...,
         alias="racecraftRatingRequirement",
-        description="Defines the Racecraft Rating (RC) that a user must have to join this server. Values: -1, 0, 1, 2, 3, 4, .... 97, 98, 99.")
+        description="Defines the Racecraft Rating (RC) that a user must have"
+        " to join this server. Values: -1, 0, 1, 2, 3, 4, .... 97, 98, 99.")
     password: str = Field(...,
         description="Password required to enter this server. If a password is set, the server is declared →Private Multiplayer.")
     spectator_password: str = Field(..., alias="spectatorPassword",
@@ -196,52 +203,60 @@ class Settings(BaseModel):
 class SettingsResponse(Settings):
     id: int
 
-    class Config:
-        orm_mode = True
-        allow_population_by_field_name = True
-
 
 class SettingsSearchResponse(BaseModel):
     total_count: int
     items: list[SettingsResponse]
 
-    class Config:
-        orm_mode = True
-        allow_population_by_field_name = True
-
 
 class Session(BaseModel):
+    """
+    Properties of an event session. Included as part of `event.json`.
+    """
     name: str
-    created: Optional[datetime]
-    hour_of_day: int = Field(..., alias="hourOfDay", description="Session starting hour of the day, values 0, 1, 2 ... 22, 23")
-    day_of_weekend: int = Field(..., alias="dayOfWeekend", description="Race weekend day, 1 = Friday, 2 = Saturday, 3 = Sunday")
-    time_multiplier: int = Field(..., alias="timeMultiplier", description="Rate at which the session time advances in realtime. Values 0, 1, ... 24")
-    session_type: str = Field(..., alias="sessionType", description="Race session type: P = Practice, Q = Qualifying, R = Race")
-    session_duration_minutes: int = Field(..., alias="sessionDurationMinutes", description="Session duration in minutes")
-
-
-class SessionUpdate(Session):
-    id: int
+    hour_of_day: int = Field(...,
+        alias="hourOfDay",
+        description="Session starting hour of the day, values 0, 1, 2 ... 22, 23")
+    day_of_weekend: int = Field(...,
+        alias="dayOfWeekend",
+        description="Race weekend day, 1 = Friday, 2 = Saturday, 3 = Sunday")
+    time_multiplier: int = Field(...,
+        alias="timeMultiplier",
+        description="Rate at which the session time advances in realtime. Values 0, 1, ... 24")
+    session_type: str = Field(...,
+        alias="sessionType",
+        description="Race session type: P = Practice, Q = Qualifying, R = Race",
+        enum=["P", "Q", "R"])
+    session_duration_minutes: int = Field(...,
+        alias="sessionDurationMinutes",
+        description="Session duration in minutes")
 
 
 class SessionResponse(Session):
     id: int
 
-    class Config:
-        orm_mode = True
-        allow_population_by_field_name = True
-
 
 class Event(BaseModel):
+    """
+    Environment conditions for races. Used to create `event.json` of server
+    instances.
+    """
     name: str
-    created: datetime
+    created: datetime = Field(..., step=1)
     track: str = Field(...,
-                       description="Track server is running. Setting a wrong value will also print out the available track keys in the log. With the 1.1 update containing the 2019 season content, each track has a _2019 variant. Using this track will set the BoP and track grip correspondingly.")
+        description="Track server is running. Setting a wrong value will also "
+        " print out the available track keys in the log. With the 1.1 update"
+        " containing the 2019 season content, each track has a _2019 variant."
+        " Using this track will set the BoP and track grip correspondingly.")
     pre_race_waiting_time_seconds: conint(ge=30, multiple_of=1) = Field(...,
-                                               alias="preRaceWaitingTimeSeconds",
-                                               description="Preparation time before a race. Cannot be less than 30s.")
-    session_over_time_seconds: conint(ge=0, multiple_of=1) = Field(..., alias="sessionOverTimeSeconds",
-                                           description="Time after that a session is forcibly closing after the timer reached '0:00. Something like 107% of the expected laptime is recommended. Careful: default 2 minutes does not properly cover tracks like Spa or Silverstone.")
+        alias="preRaceWaitingTimeSeconds",
+        description="Preparation time before a race. Cannot be less than 30s.")
+    session_over_time_seconds: conint(ge=0, multiple_of=1) = Field(...,
+        alias="sessionOverTimeSeconds",
+        description="Time after that a session is forcibly closing after the"
+        " timer reached '0:00. Something like 107% of the expected laptime is"
+        " recommended. Careful: default 2 minutes does not properly cover"
+        " tracks like Spa or Silverstone.")
     ambient_temp: int = Field(..., alias="ambientTemp",
                               description="Sets the baseline ambient temperature in °C.")
     cloud_level: confloat(ge=0, le=1, multiple_of=0.1) = Field(..., alias="cloudLevel",
@@ -265,12 +280,12 @@ class Event(BaseModel):
 
 
 class EventCreateRequest(Event):
-    created: Optional[datetime]
+    created: Optional[datetime] = Field(..., step=1)
     sessions: list[Session]
 
 
 class EventUpdateRequest(Event, metaclass=AllOptional):
-    sessions: list[SessionUpdate]
+    sessions: list[Session]
 
 
 class EventResponse(Event):
@@ -279,21 +294,18 @@ class EventResponse(Event):
 
     _sessions_list = validator("sessions", pre=True, allow_reuse=True)(list)
 
-    class Config:
-        orm_mode = True
-        allow_population_by_field_name = True
 
 
 class EventSearchResponse(BaseModel):
     total_count: int
     items: list[EventResponse]
 
-    class Config:
-        orm_mode = True
-        allow_population_by_field_name = True
 
 
 class ServerConfig(BaseModel):
+    """
+    Configuration of instances of a server process.
+    """
     name: str
     configuration_id: int
     settings_id: int
@@ -316,15 +328,7 @@ class ServerConfigResponse(ServerConfig):
     settings: SettingsResponse
     event: EventResponse
 
-    class Config:
-        orm_mode = True
-        allow_population_by_field_name = True
-
 
 class ServerConfigSearchResponse(BaseModel):
     total_count: int
     items: list[ServerConfigResponse]
-
-    class Config:
-        orm_mode = True
-        allow_population_by_field_name = True
