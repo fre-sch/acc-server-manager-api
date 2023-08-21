@@ -13,42 +13,6 @@ class User(Base):
     scopes = TextField(null=True)
 
 
-class Configuration(Base):
-    created = DateTimeField()
-    name = TextField()
-    tcp_port = IntegerField()
-    udp_port = IntegerField()
-    register_to_lobby = BooleanField()
-    max_connections = IntegerField()
-    lan_discovery = BooleanField()
-    config_version = TextField()
-    public_ip = TextField()
-
-
-class Settings(Base):
-    created = DateTimeField()
-    server_name = TextField()
-    admin_password = TextField()
-    car_group = TextField()
-    track_medals_requirement = IntegerField()
-    safety_rating_requirement = IntegerField()
-    racecraft_rating_requirement = IntegerField()
-    password = TextField()
-    spectator_password = TextField()
-    max_car_slots = IntegerField()
-    dump_leaderboards = BooleanField()
-    dump_entry_list = BooleanField()
-    is_race_locked = BooleanField()
-    short_formation_lap = BooleanField()
-    formation_lap_type = IntegerField()
-    do_driver_swap_broadcast = BooleanField()
-    randomize_track_when_empty = BooleanField()
-    central_entry_list_path = TextField()
-    allow_auto_dq = BooleanField()
-    ignore_premature_disconnects = BooleanField()
-    config_version = TextField()
-
-
 class Event(Base):
     created = DateTimeField()
     name = TextField()
@@ -78,13 +42,44 @@ class Session(Base):
 
 
 class ServerConfig(Base):
-    created = DateTimeField()
     name = TextField()
-    configuration = ForeignKeyField(Configuration)
-    settings = ForeignKeyField(Settings)
-    event = ForeignKeyField(Event)
+    created = DateTimeField()
     is_enabled = BooleanField()
-    is_running = BooleanField()
-    last_start = DateTimeField()
-    last_stop = DateTimeField()
+    event = ForeignKeyField(Event)
+
+    ## settings.json
+    settings_server_name = TextField()
+    settings_admin_password = TextField()
+    settings_car_group = TextField()
+    settings_track_medals_requirement = IntegerField()
+    settings_safety_rating_requirement = IntegerField()
+    settings_racecraft_rating_requirement = IntegerField()
+    settings_password = TextField()
+    settings_spectator_password = TextField()
+    settings_max_car_slots = IntegerField()
+    settings_dump_leaderboards = BooleanField()
+    settings_dump_entry_list = BooleanField()
+    settings_is_race_locked = BooleanField()
+    settings_short_formation_lap = BooleanField()
+    settings_formation_lap_type = IntegerField()
+    settings_do_driver_swap_broadcast = BooleanField()
+    settings_randomize_track_when_empty = BooleanField()
+    settings_central_entry_list_path = TextField()
+    settings_allow_auto_dq = BooleanField()
+    settings_ignore_premature_disconnects = BooleanField()
+    settings_version = TextField()
+
+    ## config.json
+    config_tcp_port = IntegerField()
+    config_udp_port = IntegerField()
+    config_register_to_lobby = BooleanField()
+    config_max_connections = IntegerField()
+    config_lan_discovery = BooleanField()
+    config_version = TextField()
+    config_public_ip = TextField()
+
+    ## runtime house keeping
+    process_is_running = BooleanField()
+    process_last_start = DateTimeField()
+    process_last_stop = DateTimeField()
     process_id = IntegerField()

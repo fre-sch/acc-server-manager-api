@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from starlette.responses import JSONResponse
 
 from acc_server_mgr.controllers import (
-    users, auth, server_config, configuration, event,
+    users, auth, server_config, event,
 )
 
 
@@ -63,7 +63,6 @@ app.add_middleware(
     ]
 )
 app.include_router(auth.router)
-app.include_router(configuration.router)
 app.include_router(event.router)
 app.include_router(server_config.router)
 app.include_router(users.router)

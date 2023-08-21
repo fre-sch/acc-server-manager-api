@@ -5,6 +5,7 @@ from acc_server_mgr.controllers.utils import authorize, NotFound
 from acc_server_mgr.database import use_db
 from acc_server_mgr.models.schema import (
     ServerConfig,
+    ServerConfigCreate,
     ServerConfigUpdate,
     ServerConfigResponse, ServerConfigSearchResponse, FilterRequest,
 )
@@ -16,7 +17,7 @@ router = APIRouter(prefix="/server_config", tags=["server_config"])
 
 
 @router.post("/", response_model=ServerConfigResponse)
-def create(data: ServerConfig, auth=Depends(require_auth), db=Depends(use_db)):
+def create(data: ServerConfigCreate, auth=Depends(require_auth), db=Depends(use_db)):
     """
     requires user authorization scope ``server_config``
     """

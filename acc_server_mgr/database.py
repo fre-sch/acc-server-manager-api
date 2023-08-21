@@ -1,6 +1,5 @@
 import peewee
 
-# db = peewee.DatabaseProxy()
 db = peewee.SqliteDatabase("./app.db", pragmas={
     "journal_mode": "wal",
     "cache_size": -1 * 64000,
@@ -8,7 +7,6 @@ db = peewee.SqliteDatabase("./app.db", pragmas={
     "ignore_check_constraints": 0,
     "synchronous": 0
 })
-# db.initialize(sqlite_db)
 
 
 class Base(peewee.Model):
