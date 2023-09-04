@@ -45,7 +45,7 @@ class ServerConfig(Base):
     name = TextField()
     created = DateTimeField()
     is_enabled = BooleanField()
-    event = ForeignKeyField(Event)
+    event = ForeignKeyField(Event, null=True)
 
     ## settings.json
     settings_server_name = TextField()
@@ -79,7 +79,7 @@ class ServerConfig(Base):
     config_public_ip = TextField()
 
     ## runtime house keeping
-    process_is_running = BooleanField()
-    process_last_start = DateTimeField()
-    process_last_stop = DateTimeField()
-    process_id = IntegerField()
+    process_is_running = BooleanField(default=False)
+    process_last_start = DateTimeField(null=True)
+    process_last_stop = DateTimeField(null=True)
+    process_id = IntegerField(null=True)

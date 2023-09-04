@@ -97,5 +97,6 @@ if __name__ == "__main__":
     uvicorn.run(
         "acc_server_mgr.main:app",
         log_config=logging_config,
-        root_path="/api"
+        root_path="/api",
+        reload=True
     )

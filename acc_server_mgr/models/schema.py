@@ -108,7 +108,7 @@ class Session(BaseModel):
     """
     Properties of an event session. Included as part of `event.json`.
     """
-
+    id: Optional[int] = Field(None, view="hidden")
     name: str
     hour_of_day: int = Field(
         ...,
@@ -144,7 +144,7 @@ class Session(BaseModel):
 
 
 class SessionResponse(Session):
-    id: int
+    created: Optional[datetime]
 
 
 class Event(BaseModel):
@@ -154,7 +154,6 @@ class Event(BaseModel):
     """
 
     name: str
-    created: datetime = Field(..., step=1)
     track: str = Field(
         ...,
         description=(
@@ -263,7 +262,6 @@ class Event(BaseModel):
 
 
 class EventCreateRequest(Event):
-    created: Optional[datetime] = Field(..., step=1)
     sessions: list[Session]
 
 
@@ -273,6 +271,7 @@ class EventUpdateRequest(Event, metaclass=AllOptional):
 
 class EventResponse(Event):
     id: int
+    created: datetime = Field(..., step=1)
     sessions: list[SessionResponse]
 
     _sessions_list = validator("sessions", pre=True, allow_reuse=True)(list)
@@ -289,8 +288,6 @@ class ServerConfig(BaseModel):
     """
 
     name: str
-    created: datetime
-    event_id: int
     is_enabled: bool = Field(
         ...,
         description="Can be started and stopped"
@@ -318,7 +315,9 @@ class ServerConfig(BaseModel):
     )
     settings_track_medals_requirement: int = Field(
         ...,
-        enum=[0, 1, 2, 3],
+        minimum=0,
+        maximum=3,
+        step=1,
         description=(
             "Defines the amount of track medals that a user has to have for the"
             " given track. Values: 0, 1, 2, 3."
@@ -326,6 +325,9 @@ class ServerConfig(BaseModel):
     )
     settings_safety_rating_requirement: int = Field(
         ...,
+        minimum=-1,
+        maximum=99,
+        step=1,
         description=(
             "Defines the Safety Rating (SA) that a user must have to join this"
             " server. Values: -1, 0, 1, 2, 3, 4, .... 97, 98, 99."
@@ -333,20 +335,23 @@ class ServerConfig(BaseModel):
     )
     settings_racecraft_rating_requirement: int = Field(
         ...,
+        minimum=-1,
+        maximum=99,
+        step=1,
         description=(
             "Defines the Racecraft Rating (RC) that a user must have to join"
             " this server. Values: -1, 0, 1, 2, 3, 4, .... 97, 98, 99."
         ),
     )
     settings_password: str = Field(
-        ...,
+        None,
         description=(
             "Password required to enter this server. If a password is set, the"
             " server is declared Private Multiplayer."
         ),
     )
     settings_spectator_password: str = Field(
-        ...,
+        None,
         description=(
             "Password to enter the server as a spectator. Must be different"
             " from 'password' if both are set."
@@ -354,6 +359,8 @@ class ServerConfig(BaseModel):
     )
     settings_max_car_slots: int = Field(
         ...,
+        minimum=0,
+        step=1,
         description=(
             "Defines the amount of car slots the server can occupy; this value"
             " is overridden if the pit count of the track is lower, or with 30"
@@ -364,14 +371,14 @@ class ServerConfig(BaseModel):
         ),
     )
     settings_dump_leaderboards: bool = Field(
-        ...,
+        False,
         description=(
             "If set to true, any session will write down the result leaderboard"
             " in a 'results' folder (must be manually created)."
         ),
     )
     settings_dump_entry_list: bool = Field(
-        ...,
+        False,
         description=(
             "Will save an entry list at the end of any Qualifying session. This"
             " can be a quick way to collect a starting point to build an entry"
@@ -381,10 +388,10 @@ class ServerConfig(BaseModel):
         ),
     )
     settings_is_race_locked: bool = Field(
-        ...,
+        True,
         description=(
             "If set to false, the server will allow joining during a race"
-            " session. Is not useful in →Public Multiplayer, as the user-server"
+            " session. Is not useful in Public Multiplayer, as the user-server"
             " matching will ignore ongoing race sessions."
         ),
     )
@@ -397,7 +404,9 @@ class ServerConfig(BaseModel):
     )
     settings_formation_lap_type: int = Field(
         ...,
-        enum=[0, 1, 3, 4, 5],
+        minimum=0,
+        maximum=5,
+        step=1,
         description=(
             "Toggles the formation lap type that is permanently used on this"
             " server: 5 = short formation lap with position control and UI + 1"
@@ -408,10 +417,10 @@ class ServerConfig(BaseModel):
         ),
     )
     settings_do_driver_swap_broadcast: bool = Field(
-        ...,
+        False,
     )
     settings_randomize_track_when_empty: bool = Field(
-        ...,
+        False,
         description=(
             "If set to true, the server will change to a random track when the"
             " last driver leaves (which causes a reset to FP1). The 'track'"
@@ -420,7 +429,7 @@ class ServerConfig(BaseModel):
         ),
     )
     settings_central_entry_list_path: str = Field(
-        ...,
+        None,
         description=(
             "Can override the default entryList path 'cfg/entrylist.json', so"
             " multiple ACC servers on the machine can use the same entry list"
@@ -431,7 +440,7 @@ class ServerConfig(BaseModel):
         ),
     )
     settings_allow_auto_dq: bool = Field(
-        ...,
+        False,
         description=(
             "If set to false, the server won't automatically disqualify drivers"
             " and instead hand out Stop&Go (30 Seconds) penalties. This way, a"
@@ -440,7 +449,7 @@ class ServerConfig(BaseModel):
         ),
     )
     settings_ignore_premature_disconnects: bool = Field(
-        ...,
+        False,
         description=(
             "Removes a (very good) fix where users can randomly lose the"
             " connection. There is no sane reason to turn this off. 1 ="
@@ -450,9 +459,20 @@ class ServerConfig(BaseModel):
             " act differently."
         ),
     )
-    settings_version: str
+    settings_version: str = None
 
     ## config.json
+    config_public_ip: str = Field(
+        ...,
+        description=(
+            "Explicitly defines the public IP address. Useful if the backend is"
+            " connected via a load balancer or reverse proxy. Attention: If"
+            " used, the server must use the same port number for tcpPort and"
+            " udpPort (e.g. 9231 for both), and respond to an additional"
+            " handshake on the UDP port one number higher (e.g. 9232) than its"
+            " udpPort, or it will shutdown during startup."
+        ),
+    )
     config_tcp_port: int = Field(
         ...,
         description=(
@@ -479,6 +499,8 @@ class ServerConfig(BaseModel):
     )
     config_max_connections: int = Field(
         ...,
+        minimum=0,
+        step=1,
         description=(
             "The maximum amount of connections a server will accept at a time."
             " If you own the hardware server, you can just set any high number"
@@ -488,31 +510,20 @@ class ServerConfig(BaseModel):
         ),
     )
     config_lan_discovery: bool = Field(
-        ...,
+        False,
         description=(
             "Defines if the server will listen to LAN discovery requests. Can"
             " be turned off for dedicated servers."
         ),
     )
-    config_version: str
-    config_public_ip: str = Field(
-        ...,
-        description=(
-            "Explicitly defines the public IP address. Useful if the backend is"
-            " connected via a load balancer or reverse proxy. Attention: If"
-            " used, the server must use the same port number for tcpPort and"
-            " udpPort (e.g. 9231 for both), and respond to an additional"
-            " handshake on the UDP port one number higher (e.g. 9232) than its"
-            " udpPort, or it will shutdown during startup."
-        ),
-    )
+    config_version: str = None
 
 
 class ProcessInfo(BaseModel):
-    process_is_running: bool
-    process_last_start: datetime
-    process_last_stop: datetime
-    process_id: int
+    process_is_running: bool = None
+    process_last_start: datetime = None
+    process_last_stop: datetime = None
+    process_id: int = None
 
 
 class ServerConfigProcessInfo(ServerConfig, ProcessInfo):
@@ -520,16 +531,23 @@ class ServerConfigProcessInfo(ServerConfig, ProcessInfo):
 
 
 class ServerConfigCreate(ServerConfig):
-    pass
+    event_id: Optional[int] = Field(
+        ...,
+        view="select"
+    )
 
 
 class ServerConfigUpdate(ServerConfig, metaclass=AllOptional):
-    pass
+    event_id: int = Field(
+        ...,
+        view="select"
+    )
 
 
 class ServerConfigResponse(ServerConfigProcessInfo):
     id: int
-    event: EventResponse
+    event: Optional[EventResponse]
+    created: datetime
 
 
 class ServerConfigSearchResponse(BaseModel):
