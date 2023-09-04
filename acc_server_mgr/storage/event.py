@@ -1,6 +1,7 @@
 from datetime import datetime
+from typing import Optional
 
-from peewee import JOIN, prefetch
+from peewee import prefetch
 
 from acc_server_mgr.storage.utils import apply_filter, apply_sort
 from acc_server_mgr.models.db import (
@@ -32,23 +33,43 @@ def create_one(db, data: EventCreateRequest) -> EventModel:
                 event=event_obj,
                 created=datetime.now()
             ).save()
-        return _load_event(event_obj.id)
+        return event_obj
 
 
-def get_one(db, _id: int) -> EventModel:
+def get_one(db, _id: int) -> Optional[EventModel]:
     with db:
         return _load_event(_id)
 
 
-def update_one(db, _id: int, data: EventUpdateRequest) -> EventModel:
+def update_one(db, _id: int, data: EventUpdateRequest) -> Optional[EventModel]:
     with db:
         obj = _load_event(_id)
-        if obj:
-            _attrs = data.dict(exclude_unset=True)
-            for attr, value in _attrs.items():
-                setattr(obj, attr, value)
-            obj.save()
-        return obj
+        if obj is None:
+            return None
+
+        event_data = data.dict(exclude_unset=True)
+        event_data.pop("sessions")
+        for attr, value in event_data.items():
+            setattr(obj, attr, value)
+
+        updated_session_ids = []
+
+        for session in data.sessions:
+            if session.id is not None:
+                updated_session_ids.append(session.id)
+            SessionModel(
+                **session.dict(exclude_unset=True),
+                event=obj,
+                created=datetime.now()
+            ).save()
+
+
+        for session in obj.sessions:
+            if session.id not in updated_session_ids:
+                session.delete_instance()
+
+        obj.save()
+        return _load_event(obj.id)
 
 
 def delete_one(db, _id: int):
